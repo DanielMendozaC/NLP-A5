@@ -25,14 +25,17 @@ def initialize_rope_model(mconf, bottleneck_dim=32):
     mconf.rope = True
     mconf.pos_encoding_type = 'rope'
     
-    # Make sure bottleneck_dim is available as a config attribute
+    # Explicitly set the bottleneck_dim
     mconf.bottleneck_dim = bottleneck_dim
     
+    # Initialize the model with RoPE enabled
     attention_model = GPT(mconf)
     
-    # Add debug print to verify RoPE is enabled
-    print(f"RoPE Model: rope={getattr(attention_model, 'rope', False)}, pos_encoding_type={getattr(mconf, 'pos_encoding_type', None)}, bottleneck_dim={bottleneck_dim}")
-     
+    # Debug print for verification
+    print(f"RoPE Model initialized: rope={getattr(attention_model, 'rope', False)}, "
+          f"pos_encoding_type={getattr(mconf, 'pos_encoding_type', None)}, "
+          f"bottleneck_dim={bottleneck_dim}")
+      
     ### END CODE HERE
     return attention_model
 
@@ -76,10 +79,9 @@ def finetune(reading_params_path, finetune_corpus_path, pretrain_dataset, block_
     # Check if we're loading a pretrained model
     is_pretrained = reading_params_path is not None
     is_rope = hasattr(model, 'rope') and model.rope
-
     
     # Load the finetuning corpus
-    with open(finetune_corpus_path, 'r') as f:
+    with open(finetune_corpus_path, 'r', encoding='utf-8') as f:
         finetune_corpus = f.read()
     
     # Create the name dataset for finetuning
@@ -88,18 +90,18 @@ def finetune(reading_params_path, finetune_corpus_path, pretrain_dataset, block_
     if is_pretrained:
         if is_rope:
             # Finetuning WITH a pretrained RoPE model
-            max_epochs = 30  # More epochs for RoPE
-            actual_lr = finetune_lr   # Lower learning rate for RoPE
+            max_epochs = 50  # INCREASED from 30 to 50
+            actual_lr = finetune_lr  # CHANGED - use standard learning rate
         else:
             # Finetuning WITH a pretrained vanilla model
-            max_epochs = 10
+            max_epochs = 40  # INCREASED from 10 to 40
             actual_lr = finetune_lr
     else:
         # Finetuning WITHOUT a pretrained model
         max_epochs = 75
         actual_lr = finetune_lr
     
-    # Common configuration for both scenarios
+    # Common configuration
     tconf = TrainerConfig(
         max_epochs=max_epochs,
         batch_size=256,
@@ -116,7 +118,9 @@ def finetune(reading_params_path, finetune_corpus_path, pretrain_dataset, block_
     
     # If we have a pretrained model, load its parameters
     if is_pretrained:
+        print(f"Loading pretrained model from {reading_params_path}")
         model.load_state_dict(torch.load(reading_params_path, map_location=torch.device('cpu'), weights_only=True))
+        print(f"Pretrained model loaded successfully!")
     
     ### END CODE HERE
     return tconf, trainer_obj
@@ -137,6 +141,10 @@ def pretrain(pretrain_dataset, block_size, model, pretrain_lr=6e-3, writer=None)
     ###     warmup_tokens=512*20
     ###     final_tokens=200*len(pretrain_dataset)*block_size
     ###     num_workers=0
+    trainer_obj = None #Trainer object (see trainer.py for more details)
+    tconf = None #TrainerConfig object (see trainer.py for more details)
+
+    ### START CODE HERE
 
     print("\n==== STARTING PRETRAINING ====")
     print(f"Dataset size: {len(pretrain_dataset)}")
@@ -144,15 +152,9 @@ def pretrain(pretrain_dataset, block_size, model, pretrain_lr=6e-3, writer=None)
     print(f"Model parameters: {sum(p.numel() for p in model.parameters())}")
     print(f"Using device: {next(model.parameters()).device}")
 
-
-    trainer_obj = None #Trainer object (see trainer.py for more details)
-    tconf = None #TrainerConfig object (see trainer.py for more details)
-
-    ### START CODE HERE
-
     is_rope = hasattr(model, 'rope') and model.rope
     
-    # Adjust learning rate for RoPE if needed
+    # Use standard learning rate
     actual_lr = pretrain_lr
 
     # Set up training configuration for pretraining
@@ -169,11 +171,10 @@ def pretrain(pretrain_dataset, block_size, model, pretrain_lr=6e-3, writer=None)
 
     print(f"PRETRAINING CONFIG: max_epochs={tconf.max_epochs}, batch_size={tconf.batch_size}")
     print(f"Learning rate: {tconf.learning_rate}")
-    print(f"Warmup tokens: {tconf.warmup_tokens}")
-    print(f"Final tokens: {tconf.final_tokens}")
     
     # Create the trainer object
     trainer_obj = Trainer(model, pretrain_dataset, None, tconf)
+    
     ### END CODE HERE
     return tconf, trainer_obj
 

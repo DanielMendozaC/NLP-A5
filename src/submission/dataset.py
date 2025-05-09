@@ -182,16 +182,14 @@ class CharCorruptionDataset(Dataset):
         # 1. Randomly truncate the document
         truncation_length = random.randint(4, int(self.block_size*3/4))
         if len(document) > truncation_length:
-            # Pick a random starting point if the document is longer than our truncation length
             start_index = random.randint(0, len(document) - truncation_length)
             truncated_document = document[start_index:start_index + truncation_length]
         else:
-            # If document is already shorter than truncation_length, use it as is
             truncated_document = document
         
         # 2. Break the truncated document into three substrings
-        # Determine length of masked_content (randomly around 1/4 of truncated document)
-        masked_length = max(1, int(len(truncated_document) * random.uniform(0.1, 0.4)))
+        # IMPROVED: Change the masking ratio to mask more content (15-50%)
+        masked_length = max(1, int(len(truncated_document) * random.uniform(0.15, 0.5)))
         
         # Ensure we don't try to mask more characters than we have
         masked_length = min(masked_length, len(truncated_document) - 1)

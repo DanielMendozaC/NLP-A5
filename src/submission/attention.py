@@ -43,16 +43,18 @@ def precompute_rotary_emb(dim, max_positions):
 
     # Create frequencies for each dimension
     half_dim = dim // 2
+    # Ensure the theta values follow the exact formula
     theta = 1.0 / (10000 ** (torch.arange(0, half_dim, dtype=torch.float) / half_dim))
     
     # Create position indices
     positions = torch.arange(max_positions, dtype=torch.float)
     
-    # Compute position * theta for all combinations
+    # Compute the outer product
     freq_matrix = torch.outer(positions, theta)
     
-    # Compute cos and sin values
+    # Compute cos and sin values - shape: (max_positions, half_dim, 2)
     rope_cache = torch.stack([torch.cos(freq_matrix), torch.sin(freq_matrix)], dim=-1)
+    
     
     ### END CODE HERE
     return rope_cache
@@ -76,29 +78,31 @@ def apply_rotary_emb(x, rope_cache):
     ### [part h]
     ### START CODE HERE
 
-    # x shape: (batch_size, n_head, seq_len, head_dim)
     seq_len = x.size(2)
+    head_dim = x.size(-1)
     
-    # Get the relevant part of the cache
+    # Get relevant part of the cache
     rope_cache = rope_cache[:seq_len]
     
-    # Reshape x to separate real and imaginary parts
-    head_dim = x.size(-1)
+    # Make sure we're operating on pairs of dimensions
+    assert head_dim % 2 == 0, "Head dimension must be even for RoPE"
+    
+    # Reshape x to separate pairs of dimensions that will be rotated together
     x_reshaped = x.view(*x.shape[:-1], head_dim // 2, 2)
     
-    # Convert to complex numbers
+    # Convert to complex numbers for easier rotation
     x_complex = torch.view_as_complex(x_reshaped)
     
-    # Get cos and sin from cache
+    # Get cos and sin from cache with proper broadcasting
     cos = rope_cache[..., 0].unsqueeze(0).unsqueeze(0)  # (1, 1, seq_len, head_dim/2)
     sin = rope_cache[..., 1].unsqueeze(0).unsqueeze(0)  # (1, 1, seq_len, head_dim/2)
     
     # Apply rotation: x_complex * (cos + i*sin)
-    # For a complex number a+bi multiplied by c+di: (ac-bd) + (ad+bc)i
     rotated_complex = x_complex * (cos + 1j * sin)
     
     # Convert back to real representation
     rotated_x = torch.view_as_real(rotated_complex).reshape(*x.shape)
+    
     ### END CODE HERE
     return rotated_x
 
