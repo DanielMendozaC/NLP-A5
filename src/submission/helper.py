@@ -121,6 +121,13 @@ def pretrain(pretrain_dataset, block_size, model, pretrain_lr=6e-3, writer=None)
     ###     final_tokens=200*len(pretrain_dataset)*block_size
     ###     num_workers=0
 
+    print("\n==== STARTING PRETRAINING ====")
+    print(f"Dataset size: {len(pretrain_dataset)}")
+    print(f"Block size: {block_size}")
+    print(f"Model parameters: {sum(p.numel() for p in model.parameters())}")
+    print(f"Using device: {next(model.parameters()).device}")
+
+
     trainer_obj = None #Trainer object (see trainer.py for more details)
     tconf = None #TrainerConfig object (see trainer.py for more details)
 
@@ -136,6 +143,11 @@ def pretrain(pretrain_dataset, block_size, model, pretrain_lr=6e-3, writer=None)
         num_workers=0,
         writer=writer
     )
+
+    print(f"PRETRAINING CONFIG: max_epochs={tconf.max_epochs}, batch_size={tconf.batch_size}")
+    print(f"Learning rate: {tconf.learning_rate}")
+    print(f"Warmup tokens: {tconf.warmup_tokens}")
+    print(f"Final tokens: {tconf.final_tokens}")
     
     # Create the trainer object
     trainer_obj = Trainer(model, pretrain_dataset, None, tconf)
@@ -151,11 +163,20 @@ def train(model, writing_params_path, trainer_obj):
     ### Note: trainer_obj is of type Trainer (see trainer.py for more details)
 
     ### START CODE HERE
+    print("\n==== STARTING TRAINING ====")
+    print(f"Trainer configuration: max_epochs={trainer_obj.config.max_epochs}")
+    print(f"Dataset size: {len(trainer_obj.train_dataset)}")
+
+
     # Train the model using the trainer object
     trainer_obj.train()
+    print("\n==== TRAINING COMPLETED ====")
+    print(f"Saving model to: {writing_params_path}")
     
     # Save the model parameters to the specified path
     torch.save(model.state_dict(), writing_params_path)
+    print(f"Model saved successfully!")
+
 
     ### END CODE HERE
     return
