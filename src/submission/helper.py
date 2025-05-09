@@ -25,14 +25,14 @@ def initialize_rope_model(mconf, bottleneck_dim=32):
     mconf.rope = True
     mconf.pos_encoding_type = 'rope'
     
-    # You might want to use the bottleneck_dim parameter
-    # For example, you could adjust other model parameters based on it
+    # Make sure bottleneck_dim is available as a config attribute
+    mconf.bottleneck_dim = bottleneck_dim
     
     attention_model = GPT(mconf)
     
     # Add debug print to verify RoPE is enabled
-    print(f"RoPE Model: rope={getattr(attention_model, 'rope', False)}, pos_encoding_type={getattr(mconf, 'pos_encoding_type', None)}")
-    
+    print(f"RoPE Model: rope={getattr(attention_model, 'rope', False)}, pos_encoding_type={getattr(mconf, 'pos_encoding_type', None)}, bottleneck_dim={bottleneck_dim}")
+     
     ### END CODE HERE
     return attention_model
 
@@ -89,7 +89,7 @@ def finetune(reading_params_path, finetune_corpus_path, pretrain_dataset, block_
         if is_rope:
             # Finetuning WITH a pretrained RoPE model
             max_epochs = 30  # More epochs for RoPE
-            actual_lr = finetune_lr * 0.5  # Lower learning rate for RoPE
+            actual_lr = finetune_lr   # Lower learning rate for RoPE
         else:
             # Finetuning WITH a pretrained vanilla model
             max_epochs = 10
@@ -153,11 +153,7 @@ def pretrain(pretrain_dataset, block_size, model, pretrain_lr=6e-3, writer=None)
     is_rope = hasattr(model, 'rope') and model.rope
     
     # Adjust learning rate for RoPE if needed
-    if is_rope:
-        actual_lr = pretrain_lr * 0.5  # Lower learning rate for RoPE
-    else:
-        actual_lr = pretrain_lr
-
+    actual_lr = pretrain_lr
 
     # Set up training configuration for pretraining
     tconf = TrainerConfig(

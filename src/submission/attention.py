@@ -42,19 +42,16 @@ def precompute_rotary_emb(dim, max_positions):
     ### START CODE HERE
 
     # Create frequencies for each dimension
-    # Only need dim/2 frequencies since we'll apply to pairs of dimensions
     half_dim = dim // 2
     theta = 1.0 / (10000 ** (torch.arange(0, half_dim, dtype=torch.float) / half_dim))
     
     # Create position indices
     positions = torch.arange(max_positions, dtype=torch.float)
     
-    # Compute the outer product to get position * theta_i for all combinations
-    # Shape: (max_positions, half_dim)
+    # Compute position * theta for all combinations
     freq_matrix = torch.outer(positions, theta)
     
     # Compute cos and sin values
-    # Shape: (max_positions, half_dim, 2) where last dim is [cos, sin]
     rope_cache = torch.stack([torch.cos(freq_matrix), torch.sin(freq_matrix)], dim=-1)
     
     ### END CODE HERE
@@ -86,7 +83,6 @@ def apply_rotary_emb(x, rope_cache):
     rope_cache = rope_cache[:seq_len]
     
     # Reshape x to separate real and imaginary parts
-    # Assume head_dim is even
     head_dim = x.size(-1)
     x_reshaped = x.view(*x.shape[:-1], head_dim // 2, 2)
     
@@ -99,7 +95,6 @@ def apply_rotary_emb(x, rope_cache):
     
     # Apply rotation: x_complex * (cos + i*sin)
     # For a complex number a+bi multiplied by c+di: (ac-bd) + (ad+bc)i
-    # This is equivalent to rotating (a,b) by angle given by (c,d)
     rotated_complex = x_complex * (cos + 1j * sin)
     
     # Convert back to real representation
