@@ -35,13 +35,11 @@ def precompute_rotary_emb(dim, max_positions):
     the embedding.
     """
 
-    rope_cache = None
+    # rope_cache = None
 
     ### TODO:
     ### [part h]
     ### START CODE HERE
-
-    # Create frequencies for each dimension
     half_dim = dim // 2
     # Ensure the theta values follow the exact formula
     theta = 1.0 / (10000 ** (torch.arange(0, half_dim, dtype=torch.float) / half_dim))
@@ -54,7 +52,6 @@ def precompute_rotary_emb(dim, max_positions):
     
     # Compute cos and sin values - shape: (max_positions, half_dim, 2)
     rope_cache = torch.stack([torch.cos(freq_matrix), torch.sin(freq_matrix)], dim=-1)
-    
     
     ### END CODE HERE
     return rope_cache
@@ -73,7 +70,7 @@ def apply_rotary_emb(x, rope_cache):
     # from the length of the precomputed values. In this case, you should use
     # truncate the precomputed values to match the length of the sequence.
 
-    rotated_x = None
+    # rotated_x = None
     ### TODO:
     ### [part h]
     ### START CODE HERE

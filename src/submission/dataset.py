@@ -179,7 +179,7 @@ class CharCorruptionDataset(Dataset):
         # 0. Get the document at the given index
         document = self.data[idx]
         
-        # 1. Randomly truncate the document
+        # Randomly truncate the document
         truncation_length = random.randint(4, int(self.block_size*3/4))
         if len(document) > truncation_length:
             start_index = random.randint(0, len(document) - truncation_length)
@@ -187,11 +187,8 @@ class CharCorruptionDataset(Dataset):
         else:
             truncated_document = document
         
-        # 2. Break the truncated document into three substrings
-        # IMPROVED: Change the masking ratio to mask more content (15-50%)
-        masked_length = max(1, int(len(truncated_document) * random.uniform(0.15, 0.5)))
-        
-        # Ensure we don't try to mask more characters than we have
+        # Simple masking strategy - mask around 15-20% of characters
+        masked_length = max(1, int(len(truncated_document) * random.uniform(0.15, 0.2)))
         masked_length = min(masked_length, len(truncated_document) - 1)
         
         # Choose a random starting point for the masked content
@@ -202,17 +199,17 @@ class CharCorruptionDataset(Dataset):
         masked_content = truncated_document[masked_start:masked_start+masked_length]
         suffix = truncated_document[masked_start+masked_length:]
         
-        # 3. Construct the masked string
-        masked_string = prefix + self.MASK_CHAR + suffix + self.MASK_CHAR + masked_content + self.MASK_CHAR
+        # Simpler format: prefix + MASK + masked_content + MASK + suffix
+        masked_string = prefix + self.MASK_CHAR + masked_content + self.MASK_CHAR + suffix
         
-        # Add padding characters to reach block_size
+        # Add padding characters
         masked_string = masked_string + self.PAD_CHAR * (self.block_size - len(masked_string))
         
-        # 4. Create input and output strings
-        x = masked_string[:-1]  # Input is all but the last character
-        y = masked_string[1:]   # Output is all but the first character
+        # Create input and output strings
+        x = masked_string[:-1]  # Input: all but the last character
+        y = masked_string[1:]   # Output: all but the first character
         
-        # 5. Encode as tensors
+        # Encode as tensors
         x = torch.tensor([self.stoi[c] for c in x], dtype=torch.long)
         y = torch.tensor([self.stoi[c] for c in y], dtype=torch.long)
         

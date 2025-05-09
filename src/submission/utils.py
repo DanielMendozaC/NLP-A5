@@ -41,6 +41,7 @@ def sample(model, x, steps, temperature=1.0, sample=False, top_k=None):
             logits = top_k_logits(logits, top_k)
         # apply softmax to convert to probabilities
         probs = F.softmax(logits, dim=-1)
+        
         # sample from the distribution or take the most likely
         if sample:
             ix = torch.multinomial(probs, num_samples=1)

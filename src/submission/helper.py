@@ -12,6 +12,10 @@ def initialize_vanilla_model(mconf):
     ### [part d]: Make some model here
 
     ### START CODE HERE
+    mconf.attn_pdrop = 0.2
+    mconf.embd_pdrop = 0.2
+    mconf.resid_pdrop = 0.2
+    
     attention_model = GPT(mconf)
     ### END CODE HERE
     return attention_model
@@ -25,17 +29,16 @@ def initialize_rope_model(mconf, bottleneck_dim=32):
     mconf.rope = True
     mconf.pos_encoding_type = 'rope'
     
-    # Explicitly set the bottleneck_dim
+    # Increase dropout for better generalization
+    mconf.attn_pdrop = 0.2
+    mconf.embd_pdrop = 0.2
+    mconf.resid_pdrop = 0.2
+    
     mconf.bottleneck_dim = bottleneck_dim
     
-    # Initialize the model with RoPE enabled
     attention_model = GPT(mconf)
+    print(f"RoPE Model initialized with bottleneck_dim={bottleneck_dim}, dropout={mconf.attn_pdrop}")
     
-    # Debug print for verification
-    print(f"RoPE Model initialized: rope={getattr(attention_model, 'rope', False)}, "
-          f"pos_encoding_type={getattr(mconf, 'pos_encoding_type', None)}, "
-          f"bottleneck_dim={bottleneck_dim}")
-      
     ### END CODE HERE
     return attention_model
 
@@ -72,11 +75,10 @@ def finetune(reading_params_path, finetune_corpus_path, pretrain_dataset, block_
     ###
     ### Note: Please use torch.load(reading_params_path, map_location=torch.device('cpu'), weights_only=True) to load pretrained model 
 
-    trainer_obj = None #Trainer object (see trainer.py for more details)
-    tconf = None #TrainerConfig object (see trainer.py for more details)
+    # trainer_obj = None #Trainer object (see trainer.py for more details)
+    # tconf = None #TrainerConfig object (see trainer.py for more details)
     ### START CODE HERE
 
-    # Check if we're loading a pretrained model
     is_pretrained = reading_params_path is not None
     is_rope = hasattr(model, 'rope') and model.rope
     
@@ -90,28 +92,30 @@ def finetune(reading_params_path, finetune_corpus_path, pretrain_dataset, block_
     if is_pretrained:
         if is_rope:
             # Finetuning WITH a pretrained RoPE model
-            max_epochs = 50  # INCREASED from 30 to 50
-            actual_lr = finetune_lr  # CHANGED - use standard learning rate
+            max_epochs = 15  # REDUCED to prevent overfitting
+            actual_lr = finetune_lr * 1.5  # Slightly higher learning rate
         else:
             # Finetuning WITH a pretrained vanilla model
-            max_epochs = 40  # INCREASED from 10 to 40
-            actual_lr = finetune_lr
+            max_epochs = 12  # REDUCED to prevent overfitting
+            actual_lr = finetune_lr * 1.5  # Slightly higher learning rate
     else:
         # Finetuning WITHOUT a pretrained model
         max_epochs = 75
         actual_lr = finetune_lr
     
-    # Common configuration
-    tconf = TrainerConfig(
-        max_epochs=max_epochs,
-        batch_size=256,
-        learning_rate=actual_lr,
-        lr_decay=True,
-        warmup_tokens=512*20,
-        final_tokens=200*len(pretrain_dataset)*block_size,
-        num_workers=0,
-        writer=writer
-    )
+    # Common configuration with increased dropout
+    config_params = {
+        'max_epochs': max_epochs,
+        'batch_size': 256,
+        'learning_rate': actual_lr,
+        'lr_decay': True,
+        'warmup_tokens': 512*20,
+        'final_tokens': 200*len(pretrain_dataset)*block_size,
+        'num_workers': 0,
+        'writer': writer
+    }
+    
+    tconf = TrainerConfig(**config_params)
     
     # Create the trainer object
     trainer_obj = Trainer(model, name_dataset, None, tconf)

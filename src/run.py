@@ -86,7 +86,6 @@ def create_model(args, mconf):
 #         print('Predictions written to {}; no targets provided'
 #                 .format(args['--outputs_path']))
 
-# In run.py, modify the evaluate function to use a better sampling strategy
 def evaluate(args, pretrain_dataset, device, model):
     assert args['--outputs_path'] is not None
     assert args['--reading_params_path'] is not None
@@ -95,8 +94,8 @@ def evaluate(args, pretrain_dataset, device, model):
     print(f"Evaluating model: {args['--reading_params_path']}")
     print(f"Evaluation corpus: {args['--eval_corpus_path']}")
     
-    model.load_state_dict(torch.load(args['--reading_params_path'], weights_only=True))
-    model.eval()
+    model.load_state_dict(torch.load(args['--reading_params_path'], map_location=torch.device('cpu'), weights_only=True))
+    model.eval()  # Ensure model is in evaluation mode
     
     correct = 0
     total = 0
@@ -107,8 +106,8 @@ def evaluate(args, pretrain_dataset, device, model):
             x = x + '⁇'
             x = torch.tensor([pretrain_dataset.stoi[s] for s in x], dtype=torch.long)[None,...].to(device)
             
-            # Use temperature=0.8 and greedy sampling for best results
-            pred = sample(model, x, 32, temperature=0.8, sample=False)[0]
+            # Try with temperature=0.7 for better results
+            pred = sample(model, x, 32, temperature=0.7, sample=False)[0]
             completion = ''.join([pretrain_dataset.itos[int(i)] for i in pred])
             pred = completion.split('⁇')[1]
             predictions.append(pred)
