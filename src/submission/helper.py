@@ -22,8 +22,17 @@ def initialize_rope_model(mconf, bottleneck_dim=32):
     ### [part h]: Make some other model here
 
     ### START CODE HERE
+    mconf.rope = True
     mconf.pos_encoding_type = 'rope'
+    
+    # You might want to use the bottleneck_dim parameter
+    # For example, you could adjust other model parameters based on it
+    
     attention_model = GPT(mconf)
+    
+    # Add debug print to verify RoPE is enabled
+    print(f"RoPE Model: rope={getattr(attention_model, 'rope', False)}, pos_encoding_type={getattr(mconf, 'pos_encoding_type', None)}")
+    
     ### END CODE HERE
     return attention_model
 
@@ -66,6 +75,8 @@ def finetune(reading_params_path, finetune_corpus_path, pretrain_dataset, block_
 
     # Check if we're loading a pretrained model
     is_pretrained = reading_params_path is not None
+    is_rope = hasattr(model, 'rope') and model.rope
+
     
     # Load the finetuning corpus
     with open(finetune_corpus_path, 'r') as f:
@@ -74,19 +85,25 @@ def finetune(reading_params_path, finetune_corpus_path, pretrain_dataset, block_
     # Create the name dataset for finetuning
     name_dataset = NameDataset(finetune_corpus, pretrain_dataset)
     
-    # Set up training configuration based on whether we're using a pretrained model
     if is_pretrained:
-        # Finetuning WITH a pretrained model
-        max_epochs = 10
+        if is_rope:
+            # Finetuning WITH a pretrained RoPE model
+            max_epochs = 30  # More epochs for RoPE
+            actual_lr = finetune_lr * 0.5  # Lower learning rate for RoPE
+        else:
+            # Finetuning WITH a pretrained vanilla model
+            max_epochs = 10
+            actual_lr = finetune_lr
     else:
         # Finetuning WITHOUT a pretrained model
         max_epochs = 75
+        actual_lr = finetune_lr
     
     # Common configuration for both scenarios
     tconf = TrainerConfig(
         max_epochs=max_epochs,
         batch_size=256,
-        learning_rate=finetune_lr,
+        learning_rate=actual_lr,
         lr_decay=True,
         warmup_tokens=512*20,
         final_tokens=200*len(pretrain_dataset)*block_size,
@@ -132,11 +149,21 @@ def pretrain(pretrain_dataset, block_size, model, pretrain_lr=6e-3, writer=None)
     tconf = None #TrainerConfig object (see trainer.py for more details)
 
     ### START CODE HERE
+
+    is_rope = hasattr(model, 'rope') and model.rope
+    
+    # Adjust learning rate for RoPE if needed
+    if is_rope:
+        actual_lr = pretrain_lr * 0.5  # Lower learning rate for RoPE
+    else:
+        actual_lr = pretrain_lr
+
+
     # Set up training configuration for pretraining
     tconf = TrainerConfig(
         max_epochs=650,
         batch_size=128,
-        learning_rate=pretrain_lr,
+        learning_rate=actual_lr,
         lr_decay=True,
         warmup_tokens=512*20,
         final_tokens=200*len(pretrain_dataset)*block_size,
