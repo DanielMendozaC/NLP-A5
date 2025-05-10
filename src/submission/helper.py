@@ -12,10 +12,6 @@ def initialize_vanilla_model(mconf):
     ### [part d]: Make some model here
 
     ### START CODE HERE
-    mconf.attn_pdrop = 0.2
-    mconf.embd_pdrop = 0.2
-    mconf.resid_pdrop = 0.2
-    
     attention_model = GPT(mconf)
     ### END CODE HERE
     return attention_model
@@ -79,7 +75,6 @@ def finetune(reading_params_path, finetune_corpus_path, pretrain_dataset, block_
     # tconf = None #TrainerConfig object (see trainer.py for more details)
     ### START CODE HERE
     is_pretrained = reading_params_path is not None
-    is_rope = hasattr(model, 'rope') and model.rope
     
     # Load the finetuning corpus
     with open(finetune_corpus_path, 'r', encoding='utf-8') as f:
@@ -88,25 +83,21 @@ def finetune(reading_params_path, finetune_corpus_path, pretrain_dataset, block_
     # Create the name dataset for finetuning
     name_dataset = NameDataset(finetune_corpus, pretrain_dataset)
     
+    # Use exactly the hyperparameters specified in the assignment
     if is_pretrained:
-        if is_rope:
-            # Finetuning WITH a pretrained RoPE model
-            max_epochs = 10  # BACK TO BASICS - 10 epochs is enough
-            actual_lr = finetune_lr  # Standard learning rate
-        else:
-            # Finetuning WITH a pretrained vanilla model
-            max_epochs = 10  # BACK TO BASICS - 10 epochs is enough
-            actual_lr = finetune_lr  # Standard learning rate
+        max_epochs = 10
+        batch_size = 256
+        learning_rate = finetune_lr
     else:
-        # Finetuning WITHOUT a pretrained model
         max_epochs = 75
-        actual_lr = finetune_lr
+        batch_size = 256
+        learning_rate = finetune_lr
     
-    # Simple configuration - no fancy tweaks
+    # Create the TrainerConfig with the exact specs from the assignment
     tconf = TrainerConfig(
         max_epochs=max_epochs,
-        batch_size=256,  # BACK TO DEFAULT batch size
-        learning_rate=actual_lr,
+        batch_size=batch_size,
+        learning_rate=learning_rate,
         lr_decay=True,
         warmup_tokens=512*20,
         final_tokens=200*len(pretrain_dataset)*block_size,

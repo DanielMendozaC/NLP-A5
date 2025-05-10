@@ -91,11 +91,9 @@ def evaluate(args, pretrain_dataset, device, model):
     assert args['--reading_params_path'] is not None
     assert args['--eval_corpus_path'] is not None
     
-    print(f"Evaluating model: {args['--reading_params_path']}")
-    print(f"Evaluation corpus: {args['--eval_corpus_path']}")
-    
+    print(f"Evaluating model from: {args['--reading_params_path']}")
     model.load_state_dict(torch.load(args['--reading_params_path'], map_location=torch.device('cpu'), weights_only=True))
-    model.eval()  # Ensure model is in evaluation mode
+    model.eval()
     
     correct = 0
     total = 0
@@ -106,7 +104,7 @@ def evaluate(args, pretrain_dataset, device, model):
             x = x + '⁇'
             x = torch.tensor([pretrain_dataset.stoi[s] for s in x], dtype=torch.long)[None,...].to(device)
             
-            # Simple approach: fixed temperature, no ensembling
+            # Use a slightly lower temperature for sharper predictions
             pred = sample(model, x, 32, temperature=0.8, sample=False)[0]
             completion = ''.join([pretrain_dataset.itos[int(i)] for i in pred])
             pred = completion.split('⁇')[1]

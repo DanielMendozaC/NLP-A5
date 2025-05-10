@@ -176,9 +176,10 @@ class CharCorruptionDataset(Dataset):
         ### [part e]: see spec above
 
         ### START CODE HERE
+        # Get the document
         document = self.data[idx]
         
-        # Randomly truncate the document
+        # 1. Randomly truncate to length between 4 and block_size*3/4
         truncation_length = random.randint(4, int(self.block_size*3/4))
         if len(document) > truncation_length:
             start_index = random.randint(0, len(document) - truncation_length)
@@ -186,11 +187,13 @@ class CharCorruptionDataset(Dataset):
         else:
             truncated_document = document
         
-        # Use a fixed, reasonable masking amount - don't get fancy with it
-        masked_length = max(1, int(len(truncated_document) * 0.15))  # Consistently mask ~15%
+        # 2. Break into three substrings - choose masked span around 1/4 of the document
+        # Original spec says: "The length of [masked_content] should be random, and 1/4 the length of the
+        # truncated document on average."
+        masked_length = max(1, int(len(truncated_document) * random.uniform(0.1, 0.4)))  # Random between 10-40% (avg ~25%)
         masked_length = min(masked_length, len(truncated_document) - 1)
         
-        # Choose a random starting point for the masked content
+        # Choose a random position for the mask
         masked_start = random.randint(0, len(truncated_document) - masked_length)
         
         # Split into prefix, masked_content, and suffix
@@ -198,17 +201,17 @@ class CharCorruptionDataset(Dataset):
         masked_content = truncated_document[masked_start:masked_start+masked_length]
         suffix = truncated_document[masked_start+masked_length:]
         
-        # Create a simple format: prefix + MASK + suffix + MASK + masked_content + MASK
+        # 3. Format: [prefix] MASK_CHAR [suffix] MASK_CHAR [masked_content] MASK_CHAR [pads]
         masked_string = prefix + self.MASK_CHAR + suffix + self.MASK_CHAR + masked_content + self.MASK_CHAR
         
         # Add padding characters
         masked_string = masked_string + self.PAD_CHAR * (self.block_size - len(masked_string))
         
-        # Create input and output strings
-        x = masked_string[:-1]  # Input: all but the last character
-        y = masked_string[1:]   # Output: all but the first character
+        # 4. Create input and output strings
+        x = masked_string[:-1]  # Input is all but the last character
+        y = masked_string[1:]   # Output is all but the first character
         
-        # Encode as tensors
+        # 5. Encode as tensors
         x = torch.tensor([self.stoi[c] for c in x], dtype=torch.long)
         y = torch.tensor([self.stoi[c] for c in y], dtype=torch.long)
         
