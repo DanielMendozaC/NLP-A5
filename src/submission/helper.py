@@ -24,16 +24,10 @@ def initialize_rope_model(mconf, bottleneck_dim=32):
     ### START CODE HERE
     mconf.rope = True
     mconf.pos_encoding_type = 'rope'
-    
-    # Increase dropout for better generalization
-    mconf.attn_pdrop = 0.2
-    mconf.embd_pdrop = 0.2
-    mconf.resid_pdrop = 0.2
-    
     mconf.bottleneck_dim = bottleneck_dim
     
     attention_model = GPT(mconf)
-    print(f"RoPE Model initialized with bottleneck_dim={bottleneck_dim}, dropout={mconf.attn_pdrop}")
+    print(f"RoPE Model initialized with bottleneck_dim={bottleneck_dim}")
     
     ### END CODE HERE
     return attention_model

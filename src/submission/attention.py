@@ -41,7 +41,6 @@ def precompute_rotary_emb(dim, max_positions):
     ### [part h]
     ### START CODE HERE
     half_dim = dim // 2
-    # Ensure the theta values follow the exact formula
     theta = 1.0 / (10000 ** (torch.arange(0, half_dim, dtype=torch.float) / half_dim))
     
     # Create position indices
@@ -99,7 +98,7 @@ def apply_rotary_emb(x, rope_cache):
     
     # Convert back to real representation
     rotated_x = torch.view_as_real(rotated_complex).reshape(*x.shape)
-    
+     
     ### END CODE HERE
     return rotated_x
 
