@@ -106,32 +106,10 @@ def evaluate(args, pretrain_dataset, device, model):
             x = x + '⁇'
             x = torch.tensor([pretrain_dataset.stoi[s] for s in x], dtype=torch.long)[None,...].to(device)
             
-            # Try multiple different sampling approaches and vote
-            results = []
-            
-            # Use different temperatures and sampling strategies
-            for temp in [0.7, 0.8, 0.9]:
-                # Try both greedy and sampling for each temperature
-                for _ in range(3):  # Run each setting multiple times
-                    p1 = sample(model, x, 32, temperature=temp, sample=False)
-                    p2 = sample(model, x, 32, temperature=temp, sample=True, top_k=50)
-                    
-                    c1 = ''.join([pretrain_dataset.itos[int(i)] for i in p1[0]])
-                    c2 = ''.join([pretrain_dataset.itos[int(i)] for i in p2[0]])
-                    
-                    results.append(c1.split('⁇')[1])
-                    results.append(c2.split('⁇')[1])
-            
-            # Use the most common prediction
-            from collections import Counter
-            pred_counts = Counter(results)
-            pred = pred_counts.most_common(1)[0][0]
-            
-            # Print some debug info
-            if len(results) > 1:
-                print(f"Query: {x}")
-                print(f"Results: {pred_counts.most_common(3)}")
-            
+            # Simple approach: fixed temperature, no ensembling
+            pred = sample(model, x, 32, temperature=0.8, sample=False)[0]
+            completion = ''.join([pretrain_dataset.itos[int(i)] for i in pred])
+            pred = completion.split('⁇')[1]
             predictions.append(pred)
             fout.write(pred + '\n')
             

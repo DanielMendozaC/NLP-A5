@@ -186,14 +186,8 @@ class CharCorruptionDataset(Dataset):
         else:
             truncated_document = document
         
-        # NEW STRATEGY: Sometimes mask large chunks (20-40% of content)
-        # to better learn associations between distant parts of text
-        if random.random() < 0.5:  # 50% of the time use larger mask
-            masked_percent = random.uniform(0.2, 0.4)  # Mask 20-40% of content
-        else:
-            masked_percent = random.uniform(0.1, 0.2)  # Otherwise 10-20%
-        
-        masked_length = max(1, int(len(truncated_document) * masked_percent))
+        # Use a fixed, reasonable masking amount - don't get fancy with it
+        masked_length = max(1, int(len(truncated_document) * 0.15))  # Consistently mask ~15%
         masked_length = min(masked_length, len(truncated_document) - 1)
         
         # Choose a random starting point for the masked content
@@ -204,7 +198,7 @@ class CharCorruptionDataset(Dataset):
         masked_content = truncated_document[masked_start:masked_start+masked_length]
         suffix = truncated_document[masked_start+masked_length:]
         
-        # Put the masked content after a mask token, followed by the suffix
+        # Create a simple format: prefix + MASK + suffix + MASK + masked_content + MASK
         masked_string = prefix + self.MASK_CHAR + suffix + self.MASK_CHAR + masked_content + self.MASK_CHAR
         
         # Add padding characters

@@ -89,21 +89,23 @@ def finetune(reading_params_path, finetune_corpus_path, pretrain_dataset, block_
     name_dataset = NameDataset(finetune_corpus, pretrain_dataset)
     
     if is_pretrained:
-        # CRITICAL CHANGE: Use more epochs for both models
         if is_rope:
-            max_epochs = 15  # Moderate epochs for RoPE
-            actual_lr = finetune_lr * 0.8  # Lower learning rate 
+            # Finetuning WITH a pretrained RoPE model
+            max_epochs = 10  # BACK TO BASICS - 10 epochs is enough
+            actual_lr = finetune_lr  # Standard learning rate
         else:
-            max_epochs = 25  # SUBSTANTIALLY INCREASED - more epochs helps
+            # Finetuning WITH a pretrained vanilla model
+            max_epochs = 10  # BACK TO BASICS - 10 epochs is enough
             actual_lr = finetune_lr  # Standard learning rate
     else:
+        # Finetuning WITHOUT a pretrained model
         max_epochs = 75
         actual_lr = finetune_lr
     
-    # Common configuration with dropout adjustments
+    # Simple configuration - no fancy tweaks
     tconf = TrainerConfig(
         max_epochs=max_epochs,
-        batch_size=128,  # REDUCED batch size for better generalization
+        batch_size=256,  # BACK TO DEFAULT batch size
         learning_rate=actual_lr,
         lr_decay=True,
         warmup_tokens=512*20,
